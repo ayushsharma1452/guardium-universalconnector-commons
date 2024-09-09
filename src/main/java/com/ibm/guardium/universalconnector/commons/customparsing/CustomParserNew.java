@@ -27,31 +27,6 @@ abstract class CustomParserNew {
     protected Map<String, String> properties;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public static final String APP_USER_NAME = "app_user_name";
-    public static final String CLIENT_HOSTNAME = "client_hostname";
-    public static final String CLIENT_IP = "client_ip";
-    public static final String CLIENT_IPV6 = "client_ipv6";
-    public static final String CLIENT_MAC = "client_mac";
-    public static final String COMM_PROTOCOL = "comm_protocol";
-    public static final String CONSTRUCT = "construct";
-    public static final String DB_PROTOCOL_VERSION = "db_protocol_version";
-    public static final String DESCRIPTION = "description";
-    public static final String IS_IPV6 = "is_ipv6";
-    public static final String MIN_DST = "minDst";
-    public static final String MIN_OFFSET_FROM_GMT = "minOffsetFromGMT";
-    public static final String ORIGINAL_SQL_COMMAND = "original_sql_command";
-    public static final String OS_USER = "os_user";
-    public static final String SERVER_DESCRIPTION = "server_description";
-    public static final String SERVER_HOSTNAME = "server_hostname";
-    public static final String SERVER_IP = "server_ip";
-    public static final String SERVER_IPV6 = "server_ipv6";
-    public static final String SERVER_OS = "server_os";
-    public static final String SOURCE_PROGRAM = "source_program";
-    public static final String SQL_STRING = "sql_string";
-    public static final String TIMESTAMP = "timstamp";
-    public static final String ACCESSOR_TYPE = "accessor_type";   //just used this for accessor.type need to update it after discussing
-
-
     public CustomParserNew() {
     }
 
@@ -104,30 +79,32 @@ abstract class CustomParserNew {
         return record;
     }
 
-
     protected void setSessionId(Record record, String payload) {
         String sessionId = getValue(payload, SESSION_ID);
-        if (sessionId != null && !sessionId.isEmpty()) {
-            record.setSessionId(sessionId);
-        } else {
-                // Neither session ID
-                record.setSessionId(DEFAULT_STRING);
-            }
+        record.setSessionId(sessionId != null ? sessionId : DEFAULT_STRING);
     }
 
     protected void setClientPort(Record record, String payload) {
-        String value = getValue(payload, CLIENT_PORT);
-        record.getSessionLocator().setClientPort(value != null ? Integer.parseInt(value) : SessionLocator.PORT_DEFAULT);
+        if (record.getSessionId() == null || record.getSessionId().isEmpty()) {
+            record.getSessionLocator().setClientPort(SessionLocator.PORT_DEFAULT);
+        } else {
+            String value = getValue(payload, CLIENT_PORT);
+            record.getSessionLocator().setClientPort(value != null ? Integer.parseInt(value) : SessionLocator.PORT_DEFAULT);
+        }
     }
 
     protected void setServerPort(Record record, String payload) {
-        String value = getValue(payload, SERVER_PORT);
-        record.getSessionLocator().setServerPort(value != null ? Integer.parseInt(value) : SessionLocator.PORT_DEFAULT);
+        if (record.getSessionId() == null || record.getSessionId().isEmpty()) {
+            record.getSessionLocator().setServerPort(SessionLocator.PORT_DEFAULT);
+        } else {
+            String value = getValue(payload, SERVER_PORT);
+            record.getSessionLocator().setServerPort(value != null ? Integer.parseInt(value) : SessionLocator.PORT_DEFAULT);
+        }
     }
 
     protected void setDbUser(Record record, String payload) {
         String value = getValue(payload, DB_USER);
-        record.getAccessor().setDbUser(value != null ? value : "N.A.");
+        record.getAccessor().setDbUser(value != null ? value : DATABASE_NOT_AVAILABLE);
     }
 
     protected void setServerType(Record record, String payload) {
@@ -297,7 +274,6 @@ abstract class CustomParserNew {
         }
     }
 
-
     protected String getValue(String payload, String fieldName) {
         return parse(payload, properties.get(fieldName));
     }
@@ -334,8 +310,13 @@ abstract class CustomParserNew {
 
         if (Accessor.DATA_TYPE_GUARDIUM_SHOULD_NOT_PARSE_SQL.equalsIgnoreCase(accessor.getDataType())) {
             // Populate construct if dataType is "CONSTRUCT"
+            accessor.setLanguage(Accessor.LANGUAGE_FREE_TEXT_STRING);
             setConstruct(record, payload);
         }
+
+        //null checks for accessor
+        accessor.setDbUser(getValue(payload, DB_USER) != null ? getValue(payload, DB_USER) : DATABASE_NOT_AVAILABLE);
+        accessor.setServerType(getValue(payload, SERVER_TYPE) != null ? getValue(payload, SERVER_TYPE) : DEFAULT_STRING);
 
         accessor.setServerOs(UNKOWN_STRING);
         accessor.setClientHostName(UNKOWN_STRING);
@@ -345,8 +326,7 @@ abstract class CustomParserNew {
         accessor.setSourceProgram(UNKOWN_STRING);
         accessor.setClient_mac(UNKOWN_STRING);
         accessor.setServerDescription(UNKOWN_STRING);
-        accessor.setLanguage(Accessor.LANGUAGE_FREE_TEXT_STRING);
-        accessor.setDataType(Accessor.DATA_TYPE_GUARDIUM_SHOULD_NOT_PARSE_SQL);
+
 
         record.setAccessor(accessor);
     }
@@ -422,7 +402,7 @@ protected void setDbUser(Record record, String payload) {
         String value = getValue(payload, DB_PROTOCOL);
         record.getAccessor().setDbProtocol(value != null ? value : DEFAULT_STRING);  // db_protocol: Method used to gather audits (e.g., Logstash, Cloudwatch)
     }
-    // method to handle Filbert/syslog input plugins
+    // method to handle Filbeat/syslog input plugins
     protected void setServerHostName(Record record, String payload) {
         String plugin = getValue(payload, INPUT_PLUGIN);
         if ("Filbert".equalsIgnoreCase(plugin) || "syslog".equalsIgnoreCase(plugin)) {
