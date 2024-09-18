@@ -1,4 +1,8 @@
 {
+  "sql_parsing_active": true,
+  "parsing_type": "REGEX",
+  "object": "table",
+  "verb": "verb",
   "session_id": "75849321",
   "client_port": "53422",
   "server_port": "5432",

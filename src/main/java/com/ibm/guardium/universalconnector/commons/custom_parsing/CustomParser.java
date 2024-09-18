@@ -26,8 +26,8 @@ public abstract class CustomParser {
     protected Map<String, String> properties;
     private final ObjectMapper mapper;
     private final IParser parser;
-    private boolean parseUsingSniffer = false;
-    private boolean hasSqlParsing = false;
+    boolean parseUsingSniffer = false;
+    boolean hasSqlParsing = false;
 
     public CustomParser(ParserFactory.ParserType parserType) {
         parser = new ParserFactory().getParser(parserType);
